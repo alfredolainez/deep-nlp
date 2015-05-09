@@ -1,6 +1,7 @@
 import json
 import pickle
 import random
+import sys
 
 DEFAULT_REVIEWS_FILE = "data/yelp_academic_dataset_review.json"
 DEFAULT_REVIEWS_PICKLE = "data/reviews.pickle"
@@ -23,7 +24,8 @@ def pickles_from_json(json_file=DEFAULT_REVIEWS_FILE, pickle_name=DEFAULT_REVIEW
     remaining_to_process = len(object)
     current_partition = 1
     while remaining_to_process > 0:
-        print 'Working on partition {} of {}'.format(current_partition, num_partitions)
+        sys.stdout.write('Importing package %d out of %d \r' % (current_partition, num_partitions))
+        sys.stdout.flush()
 
         # All the remaining elements go to the last partition
         if current_partition == num_partitions:
@@ -59,6 +61,3 @@ def load_partitions(partition_list, pickle_base_name=DEFAULT_REVIEWS_PICKLE + '.
 
     print "Read a total of %d partitions for a total of %d objects" % (num_partition - 1, len(result))
     return result
-
-lol = load_partitions(range(1,101))
-
