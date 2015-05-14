@@ -1,10 +1,13 @@
 import data_handling
 
+import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer, TfidfVectorizer
 from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.svm import LinearSVC, SVR
+
+from evaluation import rmslog_error
 
 class BaseBowRegressor(object):
 
@@ -89,7 +92,7 @@ class BaseBowRegressor(object):
 
         return X_train_tfidf
 
-DEFAULT_LABEL = BaseBowRegressor.STARS
+DEFAULT_LABEL = BaseBowRegressor.FUNNY_VOTES
 
 class SGD(BaseBowRegressor):
     """
@@ -104,7 +107,7 @@ class SGD(BaseBowRegressor):
             limit_data = len(self.reviews)
 
         X = self.get_bag_of_ngrams(self.reviews[:limit_data])
-        self.regs[train_on] = SGDRegressor(loss="huber", alpha=0.001, penalty="l1").fit(X, self.labels[train_on][:limit_data])
+        self.regs[train_on] = SGDRegressor(loss="huber", alpha=0.0001, penalty="l1", n_iter=20).fit(X, self.labels[train_on][:limit_data])
 
     def __test(self, reviews, labels, test_on=DEFAULT_LABEL):
         X_training_counts = self.count_vect.transform(reviews)
@@ -112,7 +115,7 @@ class SGD(BaseBowRegressor):
 
         predicted = self.regs[test_on].predict(X_training_tfidf)
 
-        return mean_absolute_error(labels, predicted)
+        return rmslog_error(predicted, labels), rmslog_error(np.zeros(len(predicted)), labels)
 
     def get_training_error(self, train_on=DEFAULT_LABEL):
         return self.__test(self.reviews, self.labels[train_on])
@@ -174,13 +177,15 @@ class SupportVectorRegressor(BaseBowRegressor):
     def get_test_R2(self, test_on=DEFAULT_LABEL):
         return self.__get_scores(self.test_reviews, self.test_labels[test_on], test_on)
 
-# Examples
-#sgd = SGD()
-sgd = SupportVectorRegressor()
-sgd.load_training_data(range(1,4))
-sgd.load_test_data(range(6,7))
-sgd.train()
-print sgd.get_training_error()
-print sgd.get_generalized_error()
-print sgd.get_training_R2()
-print sgd.get_test_R2()
+
+if __name__ == "__main__":
+    # Examples
+    #sgd = SGD()
+    sgd = SupportVectorRegressor()
+    sgd.load_training_data(range(1, 5))
+    sgd.load_test_data(range(70, 71))
+    sgd.train()
+    print sgd.get_training_error()
+    print sgd.get_generalized_error()
+    print sgd.get_training_R2()
+    print sgd.get_test_R2()
