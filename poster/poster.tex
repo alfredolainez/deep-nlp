@@ -1,0 +1,295 @@
+\documentclass[a0]{a0poster}
+% You might find the 'draft' option to a0 poster useful if you have
+% lots of graphics, because they can take some time to process and
+% display. (\documentclass[a0,draft]{a0poster})
+\input defs
+\pagestyle{empty}
+\setcounter{secnumdepth}{0}
+\renewcommand{\familydefault}{\sfdefault}
+\newcommand{\QED}{~~\rule[-1pt]{8pt}{8pt}}\def\qed{\QED}
+
+\renewcommand{\reals}{{\mbox{\bf R}}}
+
+% The textpos package is necessary to position textblocks at arbitary 
+% places on the page.
+\usepackage[absolute]{textpos}
+
+\usepackage{fleqn,psfrag,wrapfig,tikz}
+
+\usepackage[papersize={38in,28in}]{geometry}
+
+% Graphics to include graphics. Times is nice on posters, but you
+% might want to switch it off and go for CMR fonts.
+\usepackage{graphics}
+
+% we are running pdflatex, so convert .eps files to .pdf
+%\usepackage[pdftex]{graphicx}
+%\usepackage{epstopdf}
+
+% These colours are tried and tested for titles and headers. Don't
+% over use color!
+\usepackage{color}
+\definecolor{Red}{rgb}{0.9,0.0,0.1}
+
+\definecolor{bluegray}{rgb}{0.15,0.20,0.40}
+\definecolor{bluegraylight}{rgb}{0.35,0.40,0.60}
+\definecolor{gray}{rgb}{0.3,0.3,0.3}
+\definecolor{lightgray}{rgb}{0.7,0.7,0.7}
+\definecolor{darkblue}{rgb}{0.2,0.2,1.0}
+\definecolor{darkgreen}{rgb}{0.0,0.5,0.3}
+
+\renewcommand{\labelitemi}{\textcolor{bluegray}\textbullet}
+\renewcommand{\labelitemii}{\textcolor{bluegray}{--}}
+
+\setlength{\labelsep}{0.5em}
+
+
+% see documentation for a0poster class for the size options here
+\let\Textsize\normalsize
+%\def\Head#1{\noindent\hbox to \hsize{\hfil{\LARGE\color{bluegray} #1}}\bigskip}
+\def\Head#1{\noindent{\LARGE\color{bluegray} #1}\bigskip}
+\def\LHead#1{\noindent{\LARGE\color{bluegray} #1}\bigskip}
+\def\Subhead#1{\noindent{\large\color{bluegray} #1}\bigskip}
+\def\Title#1{\noindent{\VeryHuge\color{Red} #1}}
+
+
+% Set up the grid
+%
+% Note that [40mm,40mm] is the margin round the edge of the page --
+% it is _not_ the grid size. That is always defined as 
+% PAGE_WIDTH/HGRID and PAGE_HEIGHT/VGRID. In this case we use
+% 23 x 12. This gives us three columns of width 7 boxes, with a gap of
+% width 1 in between them. 12 vertical boxes is a good number to work
+% with.
+%
+% Note however that texblocks can be positioned fractionally as well,
+% so really any convenient grid size can be used.
+%
+\TPGrid[40mm,40mm]{23}{12}      % 3 cols of width 7, plus 2 gaps width 1
+
+\parindent=0pt
+\parskip=0.2\baselineskip
+
+\begin{document}
+
+% Understanding textblocks is the key to being able to do a poster in
+% LaTeX. In
+%
+%    \begin{textblock}{wid}(x,y)
+%    ...
+%    \end{textblock}
+%
+% the first argument gives the block width in units of the grid
+% cells specified above in \TPGrid; the second gives the (x,y)
+% position on the grid, with the y axis pointing down.
+
+% You will have to do a lot of previewing to get everything in the 
+% right place.
+
+% This gives good title positioning for a portrait poster.
+% Watch out for hyphenation in titles - LaTeX will do it
+% but it looks awful.
+\begin{textblock}{23}(0,0)
+\Title{Detecting Humor in Yelp Reviews}
+\end{textblock}
+
+\begin{textblock}{23}(0,0.6)
+{
+\LARGE
+Luke de Oliveira, Alfredo L\`{a}inez
+}\\\\
+{
+\Large
+\color{bluegray}
+\emph{Institute for Computational and Mathematical Engineering (ICME)}
+}
+% {
+% \Large
+% \color{bluegray}
+% \emph{CS224D}
+% }
+\end{textblock}
+
+
+% Uni logo in the top right corner. A&A in the bottom left. Gives a
+% good visual balance, but you may want to change this depending upon
+% the graphics that are in your poster.
+%\begin{textblock}{2}(0,10)
+%Your logo here
+%%\includegraphics{/usr/local/share/images/AandA.epsf}
+%\end{textblock}
+
+%\begin{textblock}{2}(21.2,0)
+%Another logo here
+%%\resizebox{2\TPHorizModule}{!}{\includegraphics{/usr/local/share/images/GUVIu/GUVIu.eps}}
+%\end{textblock}
+
+
+\begin{textblock}{7.0}(0,1.5)
+
+\hrule\medskip
+\Head{Introduction}\\
+Yelp's utility as an service relies on being able to provide an accurate, crowd-sourced opinion of a place of business. However, how can we determine which reviews provide valuable insight into a business? In addition, does humor play a role on the user-voted utility and are they related? We intend to predict community-determined vote distributions in Yelp reviews. In particular, every Yelp review has three qualities that can be voted on by other users -- ``funny'', ``useful'', and ``cool''. 
+
+This is an interesting NLP problem in that we must learn higher order structures that constitute humor. We intend to use the techniques from this class to answer questions such as what makes a review useful or what makes a review funny. Furthermore, we intend to zero in on the ``funny'' aspects of reviews -- is the humor from sarcasm? Are ``funny'' reviews associated with low ratings? Do we find interesting embeddings of ``funny'' words in the leaned vector space? These are all questions for which answers will be useful for Yelp or any review-based network.
+
+
+\medskip
+\hrule\medskip
+\Head{Our Data}\\
+We used the Yelp Dataset Challenge dataset, which consists of 1.6M reviews and 500K tips by 366K users for 61K businesses. Each review consists of one or more sentences commenting on the business at hand, along with vote-count given by users to the review -- particularly, ``funny'', ``useful'', and ``cool''.
+
+\medskip
+\hrule\medskip
+\Head{Evaluation of Predictions}\\
+
+As with any count based prediction problem, we are more concerned with the jump from 0 to 1 votes than the jump from 10 votes to 11. In accordance with this diminishing marginal utility, we use the metric outlined in Yelp's Kaggle competition called Root Mean Squared Logarithmic Error (RMSLE). It is defined as
+
+\begin{equation}
+\mathsf{RMSLE}(\hat{y}, y) = \sqrt{\frac{1}{n}\sum_{i=1}^{n} (\log(1 + \hat{y_i}) - \log(1 + y_i))^2}.
+\end{equation}
+
+This allows us to focus on detecting the presence of humor rather that worrying about distinguishing between marginal humor. Note the presence of the +1 offset, allowing the logarithm to be defined at zero.
+
+\medskip
+\hrule\medskip
+\Head{Work in Humor Detection}\\
+
+There is a distinct lack of research in the area of humor detection. Since humor in text often comes from sarcasm which is a difficult trait to pick up, we expect humor to be quite difficult to pick up. However, we intend to get some insights in what constitutes a ``funny'' review, such as trying to visualize activations on certain words or linguistic constructions, and then try to characterize the features of humor for the Yelp community.
+\end{textblock}
+
+\begin{textblock}{7.0}(8,1.5)
+\hrule\medskip
+\Head{Baselines}\\
+Since we are a non-standard metric for our prediction, we take great care to understand the range of our metric. We define the \emph{all-zero} error to be the RMSLE when we predict all zeros for our $Y$. In order to develop a baseline for deep methods, we use two different feature representations with three ``shallow'' methods, spanning the range of what can be feasibly done without deep learning. We use the following feature representations:
+
+\begin{itemize}
+    \item Basic Bag-of-Words with TF-IDF.
+    \item Mean word vector (MWV) representation.
+\end{itemize}
+
+On top of each of these methods, we use the following ``shallow'', classic ML algorithms.
+
+\begin{itemize}
+    \item SGD linear model
+    \item SVR
+    \item GBM
+\end{itemize}
+
+Though we do not expect these models to carry much weight, we use them as a baseline. 
+
+We obtained the following (tuned) results:
+
+\begin{table}[h]
+\centering
+\vspace{2ex}
+\begin{tabular}{l l l l l}
+% \toprule
+\textbf{Method} & \textbf{Train Error} & \textbf{Dev Error} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
+\hline
+%\midrule
+SVM Regression & X & X & 0.5071 & 0.5193\tabularnewline
+\hline
+SGD Linear Model & X & X & 0.4809 & 0.5142\tabularnewline
+\hline
+GBM & X & X & X & X\tabularnewline
+\hline
+%\bottomrule
+\end{tabular}
+\caption{RMSLE of classical methods built on top of Bag-of-Words}
+\end{table}
+
+\begin{table}[h]
+\centering
+\vspace{2ex}
+\begin{tabular}{l l l l l}
+% \toprule
+\textbf{Method} & \textbf{Train Error} & \textbf{Dev Error} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
+\hline
+%\midrule
+SVM Regression & X & X & 0.5071 & 0.5193\tabularnewline
+\hline
+SGD Linear Model & X & X & 0.4809 & 0.5142\tabularnewline
+\hline
+GBM & X & X & X & X\tabularnewline
+\hline
+%\bottomrule
+\end{tabular}
+\caption{RMSLE of classical methods built on top of MWV representation}
+\end{table}
+
+\medskip
+\hrule\medskip
+\Head{Line search}\\
+If $L$ is not known (usually the case), can use the following line search:
+
+\noindent\rule[-5pt]{.8\textwidth}{0.4pt}
+{\footnotesize
+\begin{tabbing}
+    {\bf given} $x^k$, $\lambda^{k-1}$, and parameter $\beta \in (0,1)$. \\*[\smallskipamount]
+    Let $\lambda := \lambda^{k-1}$. \\*[\smallskipamount]
+    {\bf repeat} \\
+    \qquad \= 1.\ Let $z := \prox_{\lambda g}(x^{k} - \lambda \nabla f(x^{k}))$. \\
+    \> 2.\ {\bf break if} $f(z) \leq \hat{f}_{\lambda}(z, x^{k})$. \\
+    \> 3.\ Update $\lambda := \beta \lambda$. \\*[\smallskipamount]
+    {\bf return} $\lambda^{k} := \lambda$, $x^{k+1}:=z$.
+\end{tabbing}}
+\noindent\rule[10pt]{.8\textwidth}{0.4pt}
+
+typical value of $\beta$ is $1/2$, and 
+\[
+\hat{f}_\lambda(x,y) = f(y) + \nabla f(y)^T (x - y) + 
+(1/2\lambda)\|x - y\|_2^2
+\]
+
+\medskip
+\hrule\medskip
+\Head{Convergence proof}\\
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad 
+minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
+in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
+officia deserunt mollit anim id est laborum.
+
+\end{textblock}
+
+\begin{textblock}{7.0}(16,1.5)
+
+\hrule\medskip
+\Head{Numerical example}\\
+Consider a numerical example with $f(x) = \|Ax - b\|_2^2$
+with $A \in \reals^{10 \times 100}$ and $b \in \reals^{10}$.
+Entries of $A$ and $b$ are generated as independent samples from
+a standard normal distribution.
+Here, we have chosen $\lambda$ using cross validation.
+
+\medskip
+\hrule\medskip
+\Head{Results}\\
+On this numerical example, the ADMM method converges quickly.
+We give two realizations corresponding to different parameters $A$ and $b$.
+\begin{center}
+\psfrag{k}[t][b]{$k$}
+\psfrag{fbest - fmin}[b][t]{$f_\mathrm{best}^{(k)} - f^\star$}
+\psfrag{noise-free realize}{noise-free case}
+\psfrag{realize1}{realization 1}
+\psfrag{realize2}{realization 2}
+\includegraphics[width=0.9\textwidth]{figures/pwl_error_fbest_realize.eps}
+\end{center}
+
+\medskip
+\hrule\medskip
+\Head{Conclusion}\\
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad 
+minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
+in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
+officia deserunt mollit anim id est laborum.
+
+\medskip
+\hrule\medskip
+\Head{Acknowledgements}\\
+This material is based upon work supported by the
+X Fellowship. 
+
+\end{textblock}
+
+\end{document}
