@@ -26,7 +26,7 @@
 %\usepackage[pdftex]{graphicx}
 %\usepackage{epstopdf}
 
-% These colours are tried and tested for titles and headers. Don't
+% These colors are tried and tested for titles and headers. Don't
 % over use color!
 \usepackage{color}
 \definecolor{Red}{rgb}{0.9,0.0,0.1}
@@ -220,27 +220,14 @@ GBM & X & X & X & X\tabularnewline
 
 \medskip
 \hrule\medskip
-\Head{Line search}\\
-If $L$ is not known (usually the case), can use the following line search:
+\Head{Deep Feedforward Nets}\\
 
-\noindent\rule[-5pt]{.8\textwidth}{0.4pt}
-{\footnotesize
-\begin{tabbing}
-    {\bf given} $x^k$, $\lambda^{k-1}$, and parameter $\beta \in (0,1)$. \\*[\smallskipamount]
-    Let $\lambda := \lambda^{k-1}$. \\*[\smallskipamount]
-    {\bf repeat} \\
-    \qquad \= 1.\ Let $z := \prox_{\lambda g}(x^{k} - \lambda \nabla f(x^{k}))$. \\
-    \> 2.\ {\bf break if} $f(z) \leq \hat{f}_{\lambda}(z, x^{k})$. \\
-    \> 3.\ Update $\lambda := \beta \lambda$. \\*[\smallskipamount]
-    {\bf return} $\lambda^{k} := \lambda$, $x^{k+1}:=z$.
-\end{tabbing}}
-\noindent\rule[10pt]{.8\textwidth}{0.4pt}
+We use 3 broad classes of feed-forward nets for basic supervised learning on both the BOW and MWV representations, as well as both at the same time. Though by no means exhaustive, this allows for thorough comparison.
 
-typical value of $\beta$ is $1/2$, and 
-\[
-\hat{f}_\lambda(x,y) = f(y) + \nabla f(y)^T (x - y) + 
-(1/2\lambda)\|x - y\|_2^2
-\]
+\begin{itemize}
+    \item $[\mathsf{FC} \rightarrow \mathsf{ReLU} \rightarrow \mathsf{Dropout}] * N \rightarrow \mathsf{FC} \rightarrow \mathsf{OUT}$
+    \item $[\mathsf{Maxout} \rightarrow \mathsf{Dropout}] * N \rightarrow [\mathsf{FC} \rightarrow \mathsf{ReLU} \rightarrow \mathsf{Dropout}] * M \rightarrow \mathsf{FC} \rightarrow \mathsf{OUT}$
+\end{itemize}
 
 \medskip
 \hrule\medskip
