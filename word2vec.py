@@ -1,42 +1,112 @@
 from gensim.models.word2vec import Word2Vec
 from language import detect_language
 from multiprocessing import Pool
-import nltk
+# import nltk
+import numpy as np
 from spacy.en import English
+from regression import BaseBowRegressor
+from functools import partial
+
+
+# better tokenizer
 nlp = English()
 
-# reviews_texts, _, _, _, _ = BaseBowRegressor.get_reviews_data(range(1,50))
-reviews_texts, useful_votes, funny_votes, cool_votes, review_stars = BaseBowRegressor.get_reviews_data(range(1,20))
-sentences = []
-print "Tokenizing sentences..."
-for i, review in enumerate(reviews_texts):
-    print '{} of {}'.format(i, len(reviews_texts))
-    if detect_language(review) == 'english':
-        sentences.append([x.lower_.encode('ascii',errors='ignore') for x in nlp(review)])
-    else:
-        print 'Skipping a {} document...'.format(detect_language(review))
+NUM_PARTITIONS = 30
 
-    # tokens = nltk.word_tokenize(review)
-    # tokens = [token.lower() for token in tokens]
-    # sentences.append(tokens)
+FILTER_ENGLISH = False # -- set to true for real code, its just super fuckin slow.
 
-sentences = [[token.lower() for token in nltk.word_tokenize(review)] for review in reviews_texts]
+reviews_texts, useful_votes, funny_votes, cool_votes, review_stars = BaseBowRegressor.get_reviews_data(range(1, NUM_PARTITIONS))
 
-w2v = Word2Vec(sentences=sentences, size=200, alpha=0.025, window=5, min_count=5, sample=1e-5, workers=6, negative=6)
+def tokenize_document(docpair):
+    print 'working on doc {}'.format(docpair[0])
+    if FILTER_ENGLISH:
+        return [x.lower_.encode('ascii',errors='ignore') for x in nlp(docpair[1]) if detect_language(x) == 'english']
+    return [x.lower_.encode('ascii',errors='ignore') for x in nlp(docpair[1])]
 
+def parallel_run(f, parms):
+    '''
+    performs in-core map reduce of the function `f`
+    over the parameter space spanned by parms.
 
+    `f` MUST take only one argument. 
+    '''
+    pool = Pool()
+    ret = pool.map(f, parms)
+    pool.close(); pool.join()
+    return ret
 
+# -- run shit in parallel...
+# sentences = parallel_run(tokenize_document, enumerate(reviews_texts))
+sentences = [tokenize_document(txt) for txt in enumerate(reviews_texts)]
 
+# build a default w2v model...
+w2v = Word2Vec(sentences=sentences, size=100, alpha=0.025, window=4, min_count=2, sample=1e-5, workers=4, negative=10)
 
 
 def tokens_to_mean_vec(tokens, w2v):
+    '''
+    Takes a list of tokens and a Word2Vec models
+    and finds the mean word vector of that list.
+    '''
     vec = []
     for w in tokens:
         try:
             vec.append(w2v[w])
         except KeyError:
             continue
+    if len(vec) == 0:
+        # -- shit! a sentence with no recognized tokens
+        vec.append(np.zeros(w2v[w2v.vocab.keys()[1]].shape))
     return np.array(vec).mean(axis=0)
+
+
+# make a mean vector for every datapoint
+data = []
+for i, txt in enumerate(sentences):
+    print '{} of {}'.format(i, len(sentences))
+    data.append(tokens_to_mean_vec(txt, w2v))
+
+X = np.array(data)
+
+X = X.astype('float32')
+
+Y = np.array(funny_votes).astype('float32')
+Y = np.log(Y + 1)
+
+from keras.models import Sequential
+from keras.layers.core import MaxoutDense, Dense, Dropout, Activation
+from keras.optimizers import SGD, Adam, RMSprop, Adagrad
+
+model_basic = Sequential()
+model_basic.add(MaxoutDense(100, 100, 20))
+model_basic.add(Activation('relu'))
+model_basic.add(Dropout(0.2))
+
+model_basic.add(MaxoutDense(100, 20, 10))
+model_basic.add(Activation('relu'))
+model_basic.add(Dropout(0.2))
+
+model_basic.add(MaxoutDense(20, 1))
+# model_basic.add(Activation('relu'))
+# model_basic.add(Dropout(0.1))
+
+# model_basic.add(Dense(10, 1))
+# model_basic.add(Activation('relu'))
+
+ada = Adagrad()
+# rms = RMSprop()
+model_basic.compile(loss='mse', optimizer=ada)
+
+
+
+
+model_basic.fit(X[:30000], Y[:30000], batch_size=10, nb_epoch=15)
+
+
+
+
+
+
 
 
 def tokens_to_vecs(tokens, w2v):
@@ -47,7 +117,6 @@ def tokens_to_vecs(tokens, w2v):
         except KeyError:
             continue
     return np.array(vec)
-
 
 
 lengths = [len(s) for s in sentences]
@@ -159,7 +228,7 @@ from keras.utils import np_utils
 
 
 model2 = Sequential()
-model2.add(Dense(100, 75, W_regularizer = l2(.0001)))
+model2.add(Dense(100, 75))
 model2.add(Activation('relu'))
 model2.add(Dropout(0.1))
 
@@ -191,7 +260,7 @@ from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.embeddings import Embedding
-from keras.layers.recurrent import LSTM, GRU
+from keras.layers.recurrent import LSTM, GRU, SimpleDeepRNN
 
 
 
@@ -276,23 +345,32 @@ open('data-dump-1-19.pkl', 'wb'), cPickle.HIGHEST_PROTOCOL)
 
 
 
-X = sequence.pad_sequences(seq_data, maxlen=400)
+X = sequence.pad_sequences(seq_data, maxlen=250)
 
 
 
 model = Sequential()
-model.add(Embedding(20000, 256))
-model.add(GRU(256, 128))
-model.add(Dropout(0.5))
-model.add(Dense(128, 64))
-model.add(Dropout(0.2))
+model.add(Embedding(271835, 100))
+# model.add(GRU(100, 128))
+model.add(SimpleDeepRNN(100, 100))
+# model.add(Dropout(0.5))
+model.add(Dense(100, 64))
+model.add(Dropout(0.1))
 model.add(Dense(64, 1))
-model.add(Activation('sigmoid'))
+model.add(Activation('relu'))
 
 # try using different optimizers and different optimizer configs
-model.compile(loss='binary_crossentropy', optimizer='adam')
+
+ada = Adagrad()
+
+model.compile(loss='mse', optimizer=ada)
 
 
+
+model.fit(X[:10000], Y[:10000], batch_size=120, nb_epoch=5)
+
+
+model.fit(X[:40000], Y[:40000], batch_size=300, nb_epoch=5)
 
 for it, (seq, label) in enumerate(zip(seq_data, Y_trans)):
     if it % 10 == 0:
@@ -300,6 +378,13 @@ for it, (seq, label) in enumerate(zip(seq_data, Y_trans)):
     model.train(np.array([seq]), [label])
 
 
+
+io.save('./yelp-data.h5', {'funny' : funny_votes, 
+              'useful' : useful_votes, 
+              'stars' : review_stars, 
+              'sequenced_data' : seq_data, 
+              'padded_data' : X,
+              'meta' : 'Yelp data over the partitions 1 thru 29. sequenced_data is an embedding from the Keras Tokenizer'})
 
 
 
