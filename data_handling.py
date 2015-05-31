@@ -3,19 +3,37 @@ import pickle
 import random
 import sys
 
+import language
+
 DEFAULT_REVIEWS_FILE = "data/yelp_academic_dataset_review.json"
 DEFAULT_REVIEWS_PICKLE = "data/reviews.pickle"
 
-def pickles_from_json(json_file=DEFAULT_REVIEWS_FILE, pickle_name=DEFAULT_REVIEWS_PICKLE, num_partitions=100):
+def pickles_from_json(json_file=DEFAULT_REVIEWS_FILE, pickle_name=DEFAULT_REVIEWS_PICKLE, num_partitions=100,
+                      accepted=None):
     """
     Dumps a json into a number of pickle partitions, which contain a list of python objects.
+
+    accepted is a generic function that returns true or false for a single json object, specifying whether or not
+    the object should be added to the pickle
     """
 
     print "Reading json file..."
     object = []
+    num_not_accepted = 0
+    total_processed = 0
     with open(json_file) as json_data:
         for line in json_data:
-            object.append(json.loads(line))
+            if accepted != None:
+                element = json.loads(line)
+                if accepted(element):
+                    object.append(element)
+                else:
+                    num_not_accepted += 1
+                    sys.stdout.write('Not accepted objects: %d / %d \r' % (num_not_accepted, total_processed))
+                    sys.stdout.flush()
+            else:
+                object.append(json.loads(line))
+            total_processed += 1
 
     print "Shuffling resulting python objects"
     random.shuffle(object)
@@ -61,3 +79,10 @@ def load_partitions(partition_list, pickle_base_name=DEFAULT_REVIEWS_PICKLE + '.
 
     print "Read a total of %d partitions for a total of %d objects" % (num_partition - 1, len(result))
     return result
+
+def accept_only_english(json_review):
+    # Short reviews are hard to classify in any language, so they will be accepted
+    if len(json_review['text']) <= 150:
+        return True
+    else:
+        return language.detect_language(json_review['text']) == 'english'
