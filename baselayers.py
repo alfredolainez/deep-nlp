@@ -11,8 +11,6 @@ import theano.tensor as T
 from theano.tensor.signal import downsample
 from theano.tensor.nnet import conv
 
-
-
 def ReLU(x):
     y = T.maximum(0.0, x)
     return(y)

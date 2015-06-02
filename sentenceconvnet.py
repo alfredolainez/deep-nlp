@@ -31,8 +31,6 @@ def Iden(x):
     y = x
     return(y)
 
-
-
 class SentenceCNN(object):
     """docstring for SentenceCNN"""
     def __init__(self, U, sentence_dim=200, wv_dim = 100, ngram_filters=[3, 4, 5], dropout=[0.5], hidden=[100, 1], activations=[ReLU, ], batch_size=50):
