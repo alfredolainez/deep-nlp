@@ -157,7 +157,7 @@ class SupportVectorRegressor(BaseBowRegressor):
 
         predicted = self.regs[test_on].predict(X_training_tfidf)
 
-        return mean_absolute_error(labels, predicted)
+        return rmslog_error(predicted, labels), rmslog_error(np.zeros(len(predicted)), labels)
 
     def get_training_error(self, train_on=DEFAULT_LABEL):
         return self.__test(self.reviews, self.labels[train_on])
@@ -181,8 +181,8 @@ if __name__ == "__main__":
     # Examples
     #sgd = SGD()
     sgd = SupportVectorRegressor()
-    sgd.load_training_data(range(1, 5))
-    sgd.load_test_data(range(70, 71))
+    sgd.load_training_data(range(1, 2))
+    sgd.load_test_data(range(3,4))
     sgd.train()
     print sgd.get_training_error()
     print sgd.get_generalized_error()

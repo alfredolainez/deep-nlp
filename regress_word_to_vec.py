@@ -13,7 +13,7 @@ from sklearn.linear_model import SGDClassifier, SGDRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.svm import LinearSVC, SVR
 
-reviews_texts, useful_votes, funny_votes, cool_votes, review_stars = BaseBowRegressor.get_reviews_data(range(1, 40))
+reviews_texts, useful_votes, funny_votes, cool_votes, review_stars = BaseBowRegressor.get_reviews_data(range(1, 30))
 model = Doc2Vec.load("docvecs_70")
 
 N = 50000
