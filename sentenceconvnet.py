@@ -33,7 +33,7 @@ def Iden(x):
 
 class SentenceCNN(object):
     """docstring for SentenceCNN"""
-    def __init__(self, U, sentence_dim=200, wv_dim = 100, ngram_filters=[3, 4, 5], dropout=[0.5], hidden=[100, 1], activations=[ReLU, ], batch_size=50):
+    def __init__(self, U, sentence_dim=200, wv_dim = 100, ngram_filters=[3, 4, 5], dropout=[0.5], hidden=[100, 1], activations=[ReLU], batch_size=50):
         super(SentenceCNN, self).__init__()
 
         self.rng = np.random.RandomState(3435)
@@ -60,7 +60,7 @@ class SentenceCNN(object):
         for ngram in ngram_filters:
             # -- we want to look at (ngram, wv_dim) sized patches...
             filter_shapes.append((self.feature_maps, 1, ngram, wv_dim))
-            pool_sizes.append((sentence_dim - ngram + 1, img_w - wv_dim + 1))
+            pool_sizes.append((sentence_dim - ngram + 1, wv_dim - wv_dim + 1))
 
         # -- define the model architecture
 
@@ -71,18 +71,20 @@ class SentenceCNN(object):
         self.x = T.matrix('x')   
 
         # -- this is the vector of target values...
-        self.y = T.ivector('y')
+        # self.y = T.ivector('y')
+        # self.y = T.fvector('y')
+        self.y = T.matrix('y')
 
         # -- initialize our wordvectors!
         self.Words = theano.shared(value = self.U, name = "Words")
 
 
         self.zero_vec_tensor = T.vector()
-        self.zero_vec = np.zeros(img_w)
-        self.set_zero = theano.function([zero_vec_tensor], updates=[(Words, T.set_subtensor(Words[0,:], zero_vec_tensor))])
+        self.zero_vec = np.zeros(wv_dim).astype('float32')
+        self.set_zero = theano.function([self.zero_vec_tensor], updates=[(self.Words, T.set_subtensor(self.Words[0,:], self.zero_vec_tensor))])
     
         # -- make the actual image from the word vectors!
-        self.sentence_image = Words[T.cast(x.flatten(),dtype="int32")].reshape((x.shape[0], 1, x.shape[1], Words.shape[1]))                                  
+        self.sentence_image = self.Words[T.cast(self.x.flatten(),dtype="int32")].reshape((self.x.shape[0], 1, self.x.shape[1], self.Words.shape[1]))                                  
         
         # -- make our model split
         self.conv_layers = []
@@ -98,8 +100,8 @@ class SentenceCNN(object):
             pool_size = pool_sizes[i]
 
             conv_layer = LeNetConvPoolLayer(rng=self.rng, 
-                                            input=sentence_image,
-                                            image_shape=(batch_size, 1, sentence_dim, wv_dim),
+                                            input=self.sentence_image,
+                                            image_shape=(self.batch_size, 1, self.sentence_dim, self.wv_dim),
                                             filter_shape=filter_shape, 
                                             poolsize=pool_size, 
                                             non_linear=CONVOLUTION_NONLINEARITY)
@@ -112,12 +114,12 @@ class SentenceCNN(object):
 
 
         # -- convert the parallel outputs into a tensor!
-        self.conv_outputs = T.concatenate(conv_output_buffer, 1)
+        self.conv_outputs = T.concatenate(self.conv_output_buffer, 1)
 
         # -- we need to flatten them output!
         self.hidden[0] = self.feature_maps * len(ngram_filters)    
 
-        self.fully_connected = MLPDropout(self.rng, input=self.conv_outputs, layer_sizes=self.hidden, activations=activations, dropout_rates=dropout_rate, classifier=False)
+        self.fully_connected = MLPDropout(self.rng, input=self.conv_outputs, layer_sizes=self.hidden, activations=activations, dropout_rates=dropout, classifier=False)
         
         # -- define parameters of the model and update functions using adadelta
         self.params = self.fully_connected.params     
@@ -131,16 +133,17 @@ class SentenceCNN(object):
         sqr_norm_lim = 9
         
         # now, need to hack away at th MLP class...    
-        self.cost = self.fully_connected.cost(y) 
-        self.dropout_cost = self.fully_connected.dropout_cost(y)           
-        self.grad_updates = sgd_updates_adadelta(params, dropout_cost, lr_decay, 1e-6, sqr_norm_lim) 
+        self.cost = self.fully_connected.cost(self.y) 
+        self.dropout_cost = self.fully_connected.dropout_cost(self.y)           
+        self.grad_updates = sgd_updates_adadelta(self.params, self.dropout_cost, lr_decay, 1e-6, sqr_norm_lim) 
 
-    def fit(self, X, y, validation):
+    def fit(self, X, y, validation, n_epochs=5):
         '''
         `validation` is a *mandatory* tuple of 
         length 2, with elements (X_val, y_val)
         '''
 
+        sys.stdout.write('Building datasets...')
         X_val, y_val = validation
 
         np.random.seed(3435)
@@ -175,16 +178,18 @@ class SentenceCNN(object):
         val_set_x = X_val 
         val_set_y = y_val  
 
+        sys.stdout.write('done.\nCopying to GPU/CPU shared env...')
+
         # -- get our training and dev sets...
-        train_set_x, train_set_y = shared_dataset(
+        train_set_x, train_set_y = shared_dataset((
                 X_training[:n_train_batches * batch_size, :], 
                 y_training[:n_train_batches * batch_size, :]
-            )
+            ))
 
-        dev_set_x, dev_set_y = shared_dataset(
+        dev_set_x, dev_set_y = shared_dataset((
                 X_training[n_train_batches*batch_size:, :], 
                 y_training[n_train_batches*batch_size:, :]
-            )
+            ))
 
         # train_set_x, train_set_y = shared_dataset((train_set[:,:img_h],train_set[:,-1]))
         # dev_set_x, dev_set_y = shared_dataset((dev_set[:,:img_h],dev_set[:,-1]))
@@ -192,47 +197,49 @@ class SentenceCNN(object):
         n_dev_batches = n_batches - n_train_batches
 
         #compile theano functions to get train/val/test errors
+        sys.stdout.write('done.\nCompiling symbolic graph...')
 
         # -- gets the error on the dev set...
-        validate_model = theano.function([self.index], fully_connected.cost(y),
+        validate_model = theano.function([self.index], self.fully_connected.cost(self.y),
                 givens = {
-                    x: dev_set_x[self.index * batch_size: (self.index + 1) * batch_size],
-                    y: dev_set_y[self.index * batch_size: (self.index + 1) * batch_size]
+                    self.x: dev_set_x[self.index * batch_size: (self.index + 1) * batch_size],
+                    self.y: dev_set_y[self.index * batch_size: (self.index + 1) * batch_size]
                 }
             )
 
         # -- gets the error on the training set...
-        test_model = theano.function([self.index], fully_connected.cost(y),
+        test_model = theano.function([self.index], self.fully_connected.cost(self.y),
                 givens = {
-                    x: train_set_x[self.index * batch_size: (self.index + 1) * batch_size],
-                    y: train_set_y[self.index * batch_size: (self.index + 1) * batch_size]
+                    self.x: train_set_x[self.index * batch_size: (self.index + 1) * batch_size],
+                    self.y: train_set_y[self.index * batch_size: (self.index + 1) * batch_size]
                 }
             )       
         
         # -- actually trains the model!        
-        train_model = theano.function([self.index], self.cost, updates=grad_updates,
+        train_model = theano.function([self.index], self.cost, updates=self.grad_updates,
               givens={
-                x: train_set_x[self.index*batch_size:(self.index+1)*batch_size],
-                y: train_set_y[self.index*batch_size:(self.index+1)*batch_size]}) 
+                self.x: train_set_x[self.index*batch_size:(self.index+1)*batch_size],
+                self.y: train_set_y[self.index*batch_size:(self.index+1)*batch_size]}) 
 
 
-
+        sys.stdout.write('done.\nBuilding predictive model...')
         test_pred_layers = []
         test_size = val_set_x.shape[0]
-        test_layer0_input = self.Words[T.cast(x.flatten(),dtype="int32")].reshape((test_size,1,self.sentence_dim,self.Words.shape[1]))
+        test_layer0_input = self.Words[T.cast(self.x.flatten(),dtype="int32")].reshape((test_size,1,self.sentence_dim,self.Words.shape[1]))
         
         for conv_layer in self.conv_layers:
             test_layer0_output = conv_layer.predict(test_layer0_input, test_size)
             test_pred_layers.append(test_layer0_output.flatten(2))
         test_layer1_input = T.concatenate(test_pred_layers, 1)
         test_y_pred = self.fully_connected.predict(test_layer1_input)
-        test_error = self.fully_connected.cost(y)
+        test_error = self.fully_connected.cost(self.y)
 
         # -- function to test model.
-        test_model_all = theano.function([x,y], test_error)   
+        test_model_all = theano.function([self.x,self.y], test_error)   
+        sys.stdout.write('done.\n')
         
         #start training over mini-batches
-        print '... training'
+        print 'Starting training...'
         epoch = 0
         best_val_perf = 0
         val_perf = 0
@@ -244,11 +251,11 @@ class SentenceCNN(object):
             if shuffle_batch:
                 for minibatch_index in np.random.permutation(range(n_train_batches)):
                     cost_epoch = train_model(minibatch_index)
-                    self.set_zero(zero_vec)
+                    self.set_zero(self.zero_vec)
             else:
                 for minibatch_index in xrange(n_train_batches):
                     cost_epoch = train_model(minibatch_index)  
-                    self.set_zero(zero_vec)
+                    self.set_zero(self.zero_vec)
             train_losses = [test_model(i) for i in xrange(n_train_batches)]
             train_perf = np.mean(train_losses)
             val_losses = [validate_model(i) for i in xrange(n_dev_batches)]

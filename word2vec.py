@@ -6,6 +6,7 @@ import numpy as np
 from spacy.en import English
 from regression import BaseBowRegressor
 from functools import partial
+from nltk import word_tokenize
 
 
 # better tokenizer
@@ -17,11 +18,17 @@ FILTER_ENGLISH = False # -- set to true for real code, its just super fuckin slo
 
 reviews_texts, useful_votes, funny_votes, cool_votes, review_stars = BaseBowRegressor.get_reviews_data(range(1, NUM_PARTITIONS))
 
-def tokenize_document(docpair):
+def tokenize_document(docpair, use_nltk=True):
     print 'working on doc {}'.format(docpair[0])
-    if FILTER_ENGLISH:
-        return [x.lower_.encode('ascii',errors='ignore') for x in nlp(docpair[1]) if detect_language(x) == 'english']
-    return [x.lower_.encode('ascii',errors='ignore') for x in nlp(docpair[1])]
+    if not use_nltk:
+        if FILTER_ENGLISH:
+            return [x.lower_.encode('ascii',errors='ignore') for x in nlp(docpair[1]) if detect_language(x) == 'english']
+        return [x.lower_.encode('ascii',errors='ignore') for x in nlp(docpair[1])]
+    else:
+        if FILTER_ENGLISH:
+            return [x.encode('ascii',errors='ignore').lower() for x in word_tokenize(docpair[1]) if detect_language(x) == 'english']
+        return [x.encode('ascii',errors='ignore').lower() for x in word_tokenize(docpair[1])]
+
 
 def parallel_run(f, parms):
     '''
@@ -328,6 +335,8 @@ from keras.preprocessing.text import Tokenizer
 tk = Tokenizer()
 
 tk.fit_on_texts((t.encode('ascii',errors='ignore') for t in reviews_texts))
+
+tk.fit_on_texts((t.encode('ascii',errors='ignore') for t in sentences))
 
 
 seq_data = [_ for _ in tk.texts_to_sequences_generator((t.encode('ascii',errors='ignore') for t in reviews_texts))]
