@@ -1,4 +1,10 @@
 import numpy as np
+import theano.tensor as T
+
+epsilon = 1.0e-15
+
+def rmslog_loss(y_true, y_pred):
+    return T.sqrt(T.sqr(T.log(1. + y_pred) - T.log(1. + y_true)).mean())
 
 def rmslog_error(predicted, real):
     """

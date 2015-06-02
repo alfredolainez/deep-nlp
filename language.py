@@ -1,4 +1,5 @@
 import sys
+from spacy.en import English
 
 try:
     from nltk import wordpunct_tokenize
@@ -6,7 +7,7 @@ try:
 except ImportError:
     print '[!] You need to install nltk (http://nltk.org/index.html)'
 
-
+nlp = English()
 
 #----------------------------------------------------------------------
 def _calculate_languages_ratios(text):
@@ -65,3 +66,10 @@ def detect_language(text):
     most_rated_language = max(ratios, key=ratios.get)
 
     return most_rated_language
+
+def tokenize_document(docpair):
+    """
+    Gets tokens from a text in English
+    """
+    print 'working on doc {}'.format(docpair[0])
+    return [x.lower_.encode('ascii', errors='ignore') for x in nlp(docpair[1])]
