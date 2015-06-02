@@ -87,7 +87,7 @@ model_basic.add(Activation('relu'))
 model_basic.add(Dropout(0.2))
 
 model_basic.add(MaxoutDense(20, 1))
-# model_basic.add(Activation('relu'))
+model_basic.add(Activation('relu'))
 # model_basic.add(Dropout(0.1))
 
 # model_basic.add(Dense(10, 1))
@@ -258,7 +258,7 @@ model2.fit(X, Y_trans, batch_size=15, nb_epoch=15)
 from keras.optimizers import SGD, RMSprop, Adagrad
 from keras.utils import np_utils
 from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.core import Dense, Dropout, Activation, Merge, MaxoutDense
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM, GRU, SimpleDeepRNN
 
@@ -370,7 +370,7 @@ model.compile(loss='mse', optimizer=ada)
 model.fit(X[:10000], Y[:10000], batch_size=120, nb_epoch=5)
 
 
-model.fit(X[:40000], Y[:40000], batch_size=300, nb_epoch=5)
+model.fit(X[:400000], Y[:400000], batch_size=3000, nb_epoch=5)
 
 for it, (seq, label) in enumerate(zip(seq_data, Y_trans)):
     if it % 10 == 0:
@@ -379,9 +379,9 @@ for it, (seq, label) in enumerate(zip(seq_data, Y_trans)):
 
 
 
-io.save('./yelp-data.h5', {'funny' : funny_votes, 
-              'useful' : useful_votes, 
-              'stars' : review_stars, 
+io.save('./yelp-datafile-1-30.h5', {'funny' : np.array(funny_votes), 
+              'useful' : np.array(useful_votes), 
+              'stars' : np.array(review_stars), 
               'sequenced_data' : seq_data, 
               'padded_data' : X,
               'meta' : 'Yelp data over the partitions 1 thru 29. sequenced_data is an embedding from the Keras Tokenizer'})
