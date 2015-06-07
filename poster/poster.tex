@@ -96,7 +96,7 @@
 \begin{textblock}{23}(0,0.6)
 {
 \LARGE
-Luke de Oliveira, Alfredo L\`{a}inez
+Luke de Oliveira, Alfredo L\'{a}inez
 }\\\\
 {
 \Large
@@ -129,10 +129,8 @@ Luke de Oliveira, Alfredo L\`{a}inez
 
 \hrule\medskip
 \Head{Introduction}\\
-Yelp's utility as an service relies on being able to provide an accurate, crowd-sourced opinion of a place of business. However, how can we determine which reviews provide valuable insight into a business? In addition, does humor play a role on the user-voted utility and are they related? We intend to predict community-determined vote distributions in Yelp reviews. In particular, every Yelp review has three qualities that can be voted on by other users -- ``funny'', ``useful'', and ``cool''. 
-
-This is an interesting NLP problem in that we must learn higher order structures that constitute humor. We intend to use the techniques from this class to answer questions such as what makes a review useful or what makes a review funny. Furthermore, we intend to zero in on the ``funny'' aspects of reviews -- is the humor from sarcasm? Are ``funny'' reviews associated with low ratings? Do we find interesting embeddings of ``funny'' words in the leaned vector space? These are all questions for which answers will be useful for Yelp or any review-based network.
-
+%Yelp's utility as an service relies on being able to provide an accurate, crowd-sourced opinion of a place of business. However, how can we determine which reviews provide valuable insight into a business? In addition, does humor play a role on the user-voted utility and are they related? We intend to predict community-determined vote distributions in Yelp reviews. 
+Yelp's utility as a service relies on being able to provide an accurate, crowd-sourced opinion of a place of business. Business reviews, which play a central role in this service, can be voted by other users (``funny'', ``useful'', and ``cool''), so that the most interesting reviews can stand out. In this project we zero in on what makes a review useful or funny. For that, we will try to predict the number of funny votes that a review receives. We intend thus to utilize deep models to capture higher structures of humor in text.
 
 \medskip
 \hrule\medskip
@@ -142,44 +140,79 @@ We used the Yelp Dataset Challenge dataset, which consists of 1.6M reviews and 5
 \medskip
 \hrule\medskip
 \Head{Evaluation of Predictions}\\
-
-As with any count based prediction problem, we are more concerned with the jump from 0 to 1 votes than the jump from 10 votes to 11. In accordance with this diminishing marginal utility, we use the metric outlined in Yelp's Kaggle competition called Root Mean Squared Logarithmic Error (RMSLE). It is defined as
+As with any count based prediction problem, we are more concerned with the jump from 0 to 1 votes than the jump from 10 votes to 11. In accordance with this diminishing marginal utility, we use the metric outlined in Yelp's Kaggle competition, called Root Mean Squared Logarithmic Error (RMSLE). It is defined as
 
 \begin{equation}
 \mathsf{RMSLE}(\hat{y}, y) = \sqrt{\frac{1}{n}\sum_{i=1}^{n} (\log(1 + \hat{y_i}) - \log(1 + y_i))^2}.
 \end{equation}
 
-This allows us to focus on detecting the presence of humor rather that worrying about distinguishing between marginal humor. Note the presence of the +1 offset, allowing the logarithm to be defined at zero.
+This allows us to focus on detecting the presence of humor rather that worrying about distinguishing between marginal humor.
+
+%\medskip
+%\hrule\medskip
+%\Head{Work in Humor Detection}\\
+
+%There is a distinct lack of research in the area of humor detection. Since humor in text often comes from sarcasm which is a difficult trait to pick up, we expect humor to be quite difficult to pick up. However, we intend to get some insights in what constitutes a ``funny'' review, such as trying to visualize activations on certain words or linguistic constructions, and then try to characterize the features of humor for the Yelp community.
 
 \medskip
 \hrule\medskip
-\Head{Work in Humor Detection}\\
+\Head{Deep Learning approaches}\\
+In order to use Deep Learning, we need to settle what deep models will be convenient for our task. We set out from the use of word vectors as our input. However, our dataset consists of full texts with a single number of votes each. Contrary to other fine-grained deep models, where labels can be found at a sentence or even word level, we only have results for full portions of text, so models such as tree-RNNs seem futile.
 
-There is a distinct lack of research in the area of humor detection. Since humor in text often comes from sarcasm which is a difficult trait to pick up, we expect humor to be quite difficult to pick up. However, we intend to get some insights in what constitutes a ``funny'' review, such as trying to visualize activations on certain words or linguistic constructions, and then try to characterize the features of humor for the Yelp community.
+A first idea is similar to that of paragraph vectors. We can simply compute the average of all the word vectors in a review and apply it to deep feedforward networks. However, we are also interested in determining whether we can find humor in more complex patterns of text. For that, we aim at Convolutional Neural Networks, which provide different levels of trade-off between global and local structure, something that may be useful in learning higher order structure of humor. We also look at LSTM and GRU Recurrent Neural Networks, with the hope that memory layers will be able to capture humor sequential structures.
 \end{textblock}
 
 \begin{textblock}{7.0}(8,1.5)
 \hrule\medskip
 \Head{Baselines}\\
-Since we are a non-standard metric for our prediction, we take great care to understand the range of our metric. We define the \emph{all-zero} error to be the RMSLE when we predict all zeros for our $Y$. In order to develop a baseline for deep methods, we use two different feature representations with three ``shallow'' methods, spanning the range of what can be feasibly done without deep learning. We use the following feature representations:
+Since we are using a non-standard metric for our prediction, we take great care to understand the range of our metric. We define the \emph{all-zero} error to be the RMSLE when we predict all zeros for our $Y$ (which would be the best idea without prior information since most reviews don't get any funny votes). In order to develop a baseline for deep methods, we use two different feature representations with three ``shallow'' methods, spanning the range of what can be feasibly done without deep learning. We use basic Bag-of-Words with TF-IDF and Paragraph Vectors as feature representations. On top of each of these feature spaces, we use the following ``shallow'', classic ML algorithms.
 
 \begin{itemize}
-    \item Basic Bag-of-Words with TF-IDF.
-    \item Mean word vector (MWV) representation.
+    \item Stochastic Gradient Descent for linear models (SGD)
+    \item Support Vector Regression
+    \item Gradient Boosting Machine (GBM)
 \end{itemize}
 
-On top of each of these methods, we use the following ``shallow'', classic ML algorithms.
+Since we do not expect these models to carry much weight, we use them as a baseline. We obtained the following (tuned) results:
 
-\begin{itemize}
-    \item SGD linear model
-    \item SVR
-    \item GBM
-\end{itemize}
+\begin{table}[h]
+\centering
+\vspace{2ex}
+\begin{tabular}{l l l}
+% \toprule
+\textbf{Method} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
+\hline
+%\midrule
+SVM Regression & 0.5071 & 0.5193\tabularnewline
+\hline
+SGD Linear Model & 0.4809 & 0.5142\tabularnewline
+\hline
+%\bottomrule
+\end{tabular}
+\caption{RMSLE of classical methods built on top of classical Bag-of-Words}
+\end{table}
 
-Though we do not expect these models to carry much weight, we use them as a baseline. 
+\begin{table}[h]
+\centering
+\vspace{2ex}
+\begin{tabular}{l l l}
+% \toprule
+\textbf{Method} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
+\hline
+%\midrule
+SVM Regression & 0.4927 & 0.5266\tabularnewline
+\hline
+GBM & 0.4868 & 0.5276\tabularnewline
+\hline
+%\bottomrule
+\end{tabular}
+\caption{RMSLE of classical methods built on top of paragraph vectors}
+\end{table}
 
-We obtained the following (tuned) results:
-
+\medskip
+\hrule\medskip
+\Head{Deep Feedforward Results}\\
+First, we illustrate results with building deep networks on top of mean-word-vector representations of phrases. We tune two different architectures: a two-layer maxout network with dropout (A), and a 4 layer deep rectifier network with dropout (B). After tuning and optimizing performance, we chose the a maxout network with structure [wordvector $\rightarrow$ Maxout(100, 100) $\rightarrow$ Maxout(100, 50) $\rightarrow$ ReLU(50, 1)] and 5 knots for the piecewise fit in each maxout layer. In addition, dropout of [0.4, 0.2] was used between layers. For the deep rectifier network, we had an architecture of [wordvector $\rightarrow$ ReLU(100, 150) $\rightarrow$ ReLU(150, 75) $\rightarrow$ ReLU(75, 10) $\rightarrow$ ReLU(10, 1)], with dropout probabilities of [0.5, 0.2, 0.1] between each fully connected layer. The networks were trained with batches of size 50 and Adagrad for optimization against the MSE cost. To optimize our actual objective, we take $\log(1 + y)$ to be our transformed targets.
 \begin{table}[h]
 \centering
 \vspace{2ex}
@@ -188,94 +221,79 @@ We obtained the following (tuned) results:
 \textbf{Method} & \textbf{Train Error} & \textbf{Dev Error} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
 \hline
 %\midrule
-SVM Regression & X & X & 0.5071 & 0.5193\tabularnewline
+Net (A) & 0.4011 &  0.4213 & \textbf{0.4209} & 0.5166\tabularnewline
 \hline
-SGD Linear Model & X & X & 0.4809 & 0.5142\tabularnewline
-\hline
-GBM & X & X & X & X\tabularnewline
+Net (B) & 0.4122 & 0.4251 & 0.4247 & 0.5166\tabularnewline
 \hline
 %\bottomrule
 \end{tabular}
-\caption{RMSLE of classical methods built on top of Bag-of-Words}
+\caption{RMSLE of deep networks built on top of mean word vectors}
 \end{table}
-
-\begin{table}[h]
-\centering
-\vspace{2ex}
-\begin{tabular}{l l l l l}
-% \toprule
-\textbf{Method} & \textbf{Train Error} & \textbf{Dev Error} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
-\hline
-%\midrule
-SVM Regression & X & X & 0.5071 & 0.5193\tabularnewline
-\hline
-SGD Linear Model & X & X & 0.4809 & 0.5142\tabularnewline
-\hline
-GBM & X & X & X & X\tabularnewline
-\hline
-%\bottomrule
-\end{tabular}
-\caption{RMSLE of classical methods built on top of MWV representation}
-\end{table}
-
-\medskip
-\hrule\medskip
-\Head{Deep Feedforward Nets}\\
-
-We use 3 broad classes of feed-forward nets for basic supervised learning on both the BOW and MWV representations, as well as both at the same time. Though by no means exhaustive, this allows for thorough comparison.
-
-\begin{itemize}
-    \item $[\mathsf{FC} \rightarrow \mathsf{ReLU} \rightarrow \mathsf{Dropout}] * N \rightarrow \mathsf{FC} \rightarrow \mathsf{OUT}$
-    \item $[\mathsf{Maxout} \rightarrow \mathsf{Dropout}] * N \rightarrow [\mathsf{FC} \rightarrow \mathsf{ReLU} \rightarrow \mathsf{Dropout}] * M \rightarrow \mathsf{FC} \rightarrow \mathsf{OUT}$
-\end{itemize}
-
-\medskip
-\hrule\medskip
-\Head{Convergence proof}\\
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad 
-minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
-in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
-officia deserunt mollit anim id est laborum.
 
 \end{textblock}
 
 \begin{textblock}{7.0}(16,1.5)
 
+\medskip
 \hrule\medskip
-\Head{Numerical example}\\
-Consider a numerical example with $f(x) = \|Ax - b\|_2^2$
-with $A \in \reals^{10 \times 100}$ and $b \in \reals^{10}$.
-Entries of $A$ and $b$ are generated as independent samples from
-a standard normal distribution.
-Here, we have chosen $\lambda$ using cross validation.
+\Head{Recurrent Net Results}\\
+
+Training with LSTMs and GRUs is delicate since convergence is not assured, and parameters such as the optimizer are critical. However, we have found an architecture which yields good results, combining a recurrent LSTM/GRU with a layer of 128 hidden units with \emph{ReLU} activation. Although LSTMs and GRUs have proved to be very similar in performance, we have noticed a slight general improvement with GRUs, and so we will report those results. We have mainly used the \emph{adam} optimizer, showing very good results compared to \emph{adagrad}, \emph{RMSProp} or \emph{sgd}, which had slower convergence or non-convergence at all.
+
+\begin{table}[h]
+\centering
+\vspace{2ex}
+\begin{tabular}{l l l l l l}
+% \toprule
+\textbf{Epochs} & \textbf{Dropout} & \textbf{Batch size} & \textbf{Optimizer} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
+\hline
+%\midrule
+5 & 0.1 & 16 & SGD & 0.4545 & 0.5132\tabularnewline
+\hline
+5 & 0.1 & 32 & adam & 0.4352 & 0.5132\tabularnewline
+\hline
+15 & 0.1 & 64 & adam & 0.4293 & 0.5132\tabularnewline
+\hline
+30 & 0.1 & 32 & adam & \textbf{0.4278} & 0.5132\tabularnewline
+\hline
+50 & 0.1 & 32 & adam & 0.4319 & 0.5132\tabularnewline
+\hline
+50 & 0.5 & 32 & adam & 0.4327 & 0.5132\tabularnewline
+\hline
+%\bottomrule
+\end{tabular}
+\caption{RMSLE of Gated Recurrent Units (GRU)}
+\end{table}
 
 \medskip
 \hrule\medskip
-\Head{Results}\\
-On this numerical example, the ADMM method converges quickly.
-We give two realizations corresponding to different parameters $A$ and $b$.
-\begin{center}
-\psfrag{k}[t][b]{$k$}
-\psfrag{fbest - fmin}[b][t]{$f_\mathrm{best}^{(k)} - f^\star$}
-\psfrag{noise-free realize}{noise-free case}
-\psfrag{realize1}{realization 1}
-\psfrag{realize2}{realization 2}
-\includegraphics[width=0.9\textwidth]{figures/pwl_error_fbest_realize.eps}
-\end{center}
+\Head{Convolutional Net Results}\\
+
+Finally, we utilized Convolutional Neural Networks as feature detectors on sentence ``images''. We utilize a model similar to [Kim 2014], and build $n$-gram convolutional feature detectors of sizes 3, 4, 5 and 6, ensuring we have 5 of each. We define a maximum Yelp review length (in words) of 250, and use word vectors of size 200. We tried fixed and floating word vectors, as well as a random initiation. We used batches of size 150, and trained for 20 epochs using Adadelta.
+
+\begin{table}[h]
+\centering
+\vspace{2ex}
+\begin{tabular}{l l l l l}
+% \toprule
+\textbf{Method} & \textbf{Train Error} & \textbf{Dev Error} & \textbf{Test Error} & \textbf{All-zero-error}\tabularnewline
+\hline
+%\midrule
+Conv, WV fixed & 0.4191 &  0.4432 & 0.4306 & 0.5201\tabularnewline
+\hline
+Conv, WV optimized & 0.3701 & 0.4002 & \textbf{0.4015} & 0.5201\tabularnewline
+\hline
+Conv, random WV & 0.3814 & 0.4154 & 0.4139 & 0.5201\tabularnewline
+\hline
+%\bottomrule
+\end{tabular}
+\caption{RMSLE of convolutional networks}
+\end{table}
 
 \medskip
 \hrule\medskip
 \Head{Conclusion}\\
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad 
-minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
-in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
-officia deserunt mollit anim id est laborum.
-
-\medskip
-\hrule\medskip
-\Head{Acknowledgements}\\
-This material is based upon work supported by the
-X Fellowship. 
+Using the metric outlined in the Yelp Kaggle competition, we examined the effectiveness of deep learning on tackling humor detection in Yelp reviews. As we would expect, basic ``shallow'' algorithms do not perform particularly well.
 
 \end{textblock}
 

@@ -11,12 +11,7 @@ import theano.tensor as T
 
 from baselayers import LeNetConvPoolLayer, MLPDropout
 
-
-
-
 warnings.filterwarnings("ignore")   
-
-
 
 def ReLU(x):
     y = T.maximum(0.0, x)
@@ -155,8 +150,8 @@ class SentenceCNN(object):
 
             # -- get random ix from first dimension
             shuffle_ix = np.random.permutation(X.shape[0])    
-            extra_X = X[ix[:extra_data_num]]
-            extra_y = y[ix[:extra_data_num]]
+            extra_X = X[shuffle_ix[:extra_data_num]]
+            extra_y = y[shuffle_ix[:extra_data_num]]
 
             X_training = np.append(X,extra_X,axis=0)
             y_training = np.append(y,extra_y,axis=0)

@@ -336,10 +336,13 @@ tk = Tokenizer()
 
 tk.fit_on_texts((t.encode('ascii',errors='ignore') for t in reviews_texts))
 
-tk.fit_on_texts((t.encode('ascii',errors='ignore') for t in sentences))
+tk.fit_on_texts((' '.join(t) for t in sentences))
 
 
 seq_data = [_ for _ in tk.texts_to_sequences_generator((t.encode('ascii',errors='ignore') for t in reviews_texts))]
+
+
+seq_data = [_ for _ in tk.texts_to_sequences_generator((' '.join(t) for t in sentences))]
 
 
 
@@ -354,7 +357,9 @@ open('data-dump-1-19.pkl', 'wb'), cPickle.HIGHEST_PROTOCOL)
 
 
 
-X = sequence.pad_sequences(seq_data, maxlen=250)
+
+
+X = sequence.pad_sequences(seq_data, maxlen=100)
 
 
 
