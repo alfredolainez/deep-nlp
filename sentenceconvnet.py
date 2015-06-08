@@ -66,9 +66,9 @@ class SentenceCNN(object):
         self.x = T.matrix('x')   
 
         # -- this is the vector of target values...
-        # self.y = T.ivector('y')
+        self.y = T.ivector('y')
         # self.y = T.fvector('y')
-        self.y = T.matrix('y')
+        # self.y = T.matrix('y')
 
         # -- initialize our wordvectors!
         self.Words = theano.shared(value = self.U, name = "Words")
@@ -114,7 +114,8 @@ class SentenceCNN(object):
         # -- we need to flatten them output!
         self.hidden[0] = self.feature_maps * len(ngram_filters)    
 
-        self.fully_connected = MLPDropout(self.rng, input=self.conv_outputs, layer_sizes=self.hidden, activations=activations, dropout_rates=dropout, classifier=False)
+        # self.fully_connected = MLPDropout(self.rng, input=self.conv_outputs, layer_sizes=self.hidden, activations=activations, dropout_rates=dropout, classifier=False)
+        self.fully_connected = MLPDropout(self.rng, input=self.conv_outputs, layer_sizes=self.hidden, activations=activations, dropout_rates=dropout, classifier=True)
         
         # -- define parameters of the model and update functions using adadelta
         self.params = self.fully_connected.params     
@@ -178,12 +179,14 @@ class SentenceCNN(object):
         # -- get our training and dev sets...
         train_set_x, train_set_y = shared_dataset((
                 X_training[:n_train_batches * batch_size, :], 
-                y_training[:n_train_batches * batch_size, :]
+                # y_training[:n_train_batches * batch_size, :]
+                y_training[:n_train_batches * batch_size]
             ))
 
         dev_set_x, dev_set_y = shared_dataset((
                 X_training[n_train_batches*batch_size:, :], 
-                y_training[n_train_batches*batch_size:, :]
+                # y_training[n_train_batches*batch_size:, :]
+                y_training[n_train_batches*batch_size:]
             ))
 
         # train_set_x, train_set_y = shared_dataset((train_set[:,:img_h],train_set[:,-1]))
@@ -195,7 +198,7 @@ class SentenceCNN(object):
         sys.stdout.write('done.\nCompiling symbolic graph...')
 
         # -- gets the error on the dev set...
-        validate_model = theano.function([self.index], self.fully_connected.cost(self.y),
+        validate_model = theano.function([self.index], self.fully_connected.errors(self.y),
                 givens = {
                     self.x: dev_set_x[self.index * batch_size: (self.index + 1) * batch_size],
                     self.y: dev_set_y[self.index * batch_size: (self.index + 1) * batch_size]
@@ -203,7 +206,7 @@ class SentenceCNN(object):
             )
 
         # -- gets the error on the training set...
-        test_model = theano.function([self.index], self.fully_connected.cost(self.y),
+        test_model = theano.function([self.index], self.fully_connected.errors(self.y),
                 givens = {
                     self.x: train_set_x[self.index * batch_size: (self.index + 1) * batch_size],
                     self.y: train_set_y[self.index * batch_size: (self.index + 1) * batch_size]
@@ -212,9 +215,11 @@ class SentenceCNN(object):
         
         # -- actually trains the model!        
         train_model = theano.function([self.index], self.cost, updates=self.grad_updates,
-              givens={
-                self.x: train_set_x[self.index*batch_size:(self.index+1)*batch_size],
-                self.y: train_set_y[self.index*batch_size:(self.index+1)*batch_size]}) 
+                givens={
+                    self.x: train_set_x[self.index*batch_size:(self.index+1)*batch_size],
+                    self.y: train_set_y[self.index*batch_size:(self.index+1)*batch_size]
+                }
+            ) 
 
 
         sys.stdout.write('done.\nBuilding predictive model...')
@@ -230,7 +235,7 @@ class SentenceCNN(object):
         test_error = self.fully_connected.cost(self.y)
 
         # -- function to test model.
-        test_model_all = theano.function([self.x,self.y], test_error)   
+        test_model_all = theano.function([self.x, self.y], test_error)   
         sys.stdout.write('done.\n')
         
         #start training over mini-batches
@@ -315,7 +320,7 @@ def shared_dataset(data_xy, borrow=True):
         shared_y = theano.shared(np.asarray(data_y,
                                                dtype=theano.config.floatX),
                                  borrow=borrow)
-        return shared_x, T.cast(shared_y, theano.config.floatX)
+        return shared_x, T.cast(shared_y, 'int32')#theano.config.floatX)
 
 
 def as_floatX(variable):
