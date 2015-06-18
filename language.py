@@ -67,9 +67,10 @@ def detect_language(text):
 
     return most_rated_language
 
-def tokenize_document(docpair):
+def tokenize_document(docpair, verbose=False):
     """
     Gets tokens from a text in English
     """
-    print 'working on doc {}'.format(docpair[0])
+    if verbose:
+        sys.stdout.write('working on doc {}'.format(docpair[0]) + '\r')
     return [x.lower_.encode('ascii', errors='ignore') for x in nlp(docpair[1])]

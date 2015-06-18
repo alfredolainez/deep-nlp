@@ -2,6 +2,7 @@ import json
 import pickle
 import random
 import sys
+import numpy as np
 
 import language
 
@@ -80,8 +81,100 @@ def load_partitions(partition_list, pickle_base_name=DEFAULT_REVIEWS_PICKLE + '.
     print "Read a total of %d partitions for a total of %d objects" % (num_partition - 1, len(result))
     return result
 
+def get_reviews_data(partitions_to_use, pickle_base_name):
+    """
+    Gets loaded json data in pickles and returns fields of interest
+    """
+
+    data = load_partitions(partitions_to_use, pickle_base_name)
+    review_texts = []
+    useful_votes = []
+    funny_votes = []
+    cool_votes = []
+    review_stars = []
+
+    for review in data:
+        review_texts.append(review['text'])
+        useful_votes.append(review['votes']['useful'
+        cool_votes.append(review['votes']['cool'])
+        funny_votes.append(review['votes']['funny'])
+        review_stars.append(review['stars'])
+
+    return review_texts, useful_votes, funny_votes, cool_votes, review_stars
+
+def give_balanced_classes(reviews, funny_votes):
+    """
+    From all the reviews and votes given, partitions the data into two classes: funny reviews and not
+    funny reviews.
+    All the funny reviews found are returned. The method is assuming majority of not funny votes.
+    The same number of not funny reviews are returned, randomly selected.
+    Returned data is a shuffled balanced set of funny and not funny reviews.
+    """
+
+    # We will consider a review to be funny if it has 3 or more funny votes.
+    # Not funny reviews have 0 votes.
+    VOTES_THRESHOLD = 3
+    not_funny_reviews_indices = []
+
+    # Find all the funny reviews we can
+    final_reviews = []
+    final_labels = []
+    for i, review in enumerate(reviews):
+        if funny_votes[i] >= VOTES_THRESHOLD:
+            final_reviews.append(review)
+            final_labels.append(1)
+        elif funny_votes[i] == 0:
+            not_funny_reviews_indices.append(i)
+
+    # We want balanced classes so take same number
+    np.random.shuffle(not_funny_reviews_indices)
+    num_funny_reviews = len(final_reviews)
+    for i in range(num_funny_reviews):
+        final_reviews.append(reviews[not_funny_reviews_indices[i]])
+        final_labels.append(0)
+
+    # Shuffle final reviews and labels
+    combined_lists = zip(final_reviews, final_labels)
+    np.random.shuffle(combined_lists)
+    final_reviews[:], final_labels[:] = zip(*combined_lists)
+
+    print "Returning %d funny reviews and a total of %d reviews" % (num_funny_reviews, len(final_reviews))
+
+    return (final_reviews, final_labels)
+
+def create_data_sets(partition_list=range(1,100), pickle_base_name=DEFAULT_REVIEWS_PICKLE + '.'):
+    """
+    Creates a 50% - 25% - 25% train/validation/test partition of the classification problem. Classes are balanced.
+    It reads the list of partitions saved in pickles.
+    Resulting data sets are saved as python pickles.
+    """
+
+    load_partitions(partition_list, pickle_base_name)
+    reviews, _, funny_votes, _, _ = get_reviews_data(partition_list, pickle_base_name)
+    reviews, labels = give_balanced_classes(reviews, funny_votes)
+    N = len(reviews)
+
+    train_reviews = reviews[:N/2]
+    train_labels = labels[:N/2]
+
+    dev_reviews = reviews[N/2:3*N/4]
+    dev_labels = labels[N/2:3*N/4]
+
+    test_reviews = reviews[3*N/4:]
+    test_labels = labels[3*N/4:]
+
+    pickle.dump([train_reviews, train_labels],
+                open("TrainSet_" + str(N), "wb"), pickle.HIGHEST_PROTOCOL)
+
+    pickle.dump([dev_reviews, dev_labels],
+                open("DevSet_" + str(N), "wb"), pickle.HIGHEST_PROTOCOL)
+
+    pickle.dump([test_reviews, test_labels],
+                open("TestSet_" + str(N), "wb"), pickle.HIGHEST_PROTOCOL)
+
+
 def accept_only_english(json_review):
-    # Short reviews are hard to classify in any language, so they will be accepted
+    # Short texts are hard to classify in any language, so they will be accepted
     if len(json_review['text']) <= 150:
         return True
     else:
